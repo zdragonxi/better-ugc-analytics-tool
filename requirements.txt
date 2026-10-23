@@ -1,0 +1,2 @@
+# Runtime dependency (everything else is the Python standard library).
+requests==2.32.5

@@ -1,0 +1,33 @@
+# secrets — never commit these
+.env
+config.ini
+roblox_cookie.txt
+.roblox_cookie
+*.cookie
+cookie.txt
+
+# data
+data/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.csv
+*.csv.zip
+!tests/**/*.csv
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+
+# editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

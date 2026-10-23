@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sales Analytics</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/style.css">
+<script src="/static/chart-4.4.1.umd.js" defer></script>
+<script src="/static/golden.js" defer></script>
+<script src="/static/app.js" defer></script>
+</head>
+<body>
+<main class="sales-dash" id="dash">
+<header>
+  <h1>Sales Analytics</h1>
+  <div id="status"><span class="dot"></span><span id="statusText">connecting…</span></div>
+  <span class="robux-pill" id="robuxPill" title="Your account's Robux balance" hidden>
+    <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" d="M12 2.6 20.2 7.3v9.4L12 21.4 3.8 16.7V7.3z"/><rect x="9" y="9" width="6" height="6" rx="1" fill="currentColor"/></svg>
+    <span id="robuxVal">–</span>
+  </span>
+  <button type="button" class="sd-eye" id="btnShowcase" aria-pressed="false"
+          title="Blur all numbers for screen-sharing — graphs stay visible">Hide stats</button>
+</header>
+
+<div class="toolbar">
+  <div class="tabs" id="srcTabs" role="group" aria-label="Store"></div>
+  <div class="tabs" id="rangeTabs" role="group" aria-label="Date range"></div>
+</div>
+
+<div class="cards">
+  <button type="button" class="card sel" id="cardRobux" aria-pressed="true" data-metric="robux">
+    <span class="l">Robux Earned</span><span class="v" id="vRobux">–</span>
+    <span class="s" id="sRobux"></span>
+  </button>
+  <button type="button" class="card" id="cardSales" aria-pressed="false" data-metric="sales">
+    <span class="l">Sales</span><span class="v" id="vSales">–</span>
+    <span class="s" id="sSales"></span>
+  </button>
+  <div class="card plain">
+    <div class="l">Pending Robux</div><div class="v" id="vPending">–</div>
+    <div class="s" id="sPending">from Roblox</div>
+  </div>
+  <div class="card plain">
+    <div class="l">Group Funds</div><div class="v" id="vFunds">–</div>
+    <div class="s" id="sFunds">current balance</div>
+  </div>
+  <div class="card plain">
+    <div class="l">Items On Sale <button type="button" class="sd-refresh" id="btnCatalog"
+      title="Recount items on sale now (read-only; at most once a minute)" aria-label="Recount items on sale">↻</button></div>
+    <div class="v" id="vItems">–</div>
+    <div class="s" id="sItems">in catalog</div>
+  </div>
+  <div class="card plain">
+    <div class="l">In-game / Website</div><div class="v" id="vLoc">–</div>
+    <div class="s" id="sLoc">where sales happen</div>
+  </div>
+  <div class="card plain">
+    <div class="l">Avg / Day</div><div class="v" id="vAvg">–</div>
+    <div class="s" id="sAvg"></div>
+  </div>
+  <div class="card plain">
+    <div class="l">Avg / Sale</div><div class="v" id="vAvgSale">–</div>
+    <div class="s">Robux per sale in range</div>
+  </div>
+  <div class="card plain" title="(pending Robux ÷ items on sale) ÷ average Robux per sale in the selected range">
+    <div class="l">Golden Ratio</div><div class="v" id="vGolden">–</div>
+    <div class="s">(pending ÷ items) ÷ avg sale</div>
+  </div>
+</div>
+
+<section class="panel" aria-labelledby="chartTitle">
+  <h2 id="chartTitle">Robux Earned</h2>
+  <div class="sub" id="chartSub"></div>
+  <form class="sd-range" id="rangeForm">
+    <label for="rgFrom">From</label><input type="date" id="rgFrom" required>
+    <label for="rgTo">to</label><input type="date" id="rgTo" required>
+    <button type="submit" class="sd-eye">Show range</button>
+  </form>
+  <div class="chartwrap"><canvas id="chMain" role="img" aria-label="Sales chart" aria-describedby="chartSub"></canvas></div>
+</section>
+
+<section class="panel" aria-labelledby="itemsTitle">
+  <h2 id="itemsTitle">Items</h2>
+  <div class="sub">Selected range, sorted by Robux</div>
+  <div class="sd-items" id="itemsWrap">
+    <table id="tbl"><thead>
+      <tr><th>Item</th>
+          <th class="num sortable" data-sort="n" aria-sort="none"><button type="button" class="sd-sort">Sales</button></th>
+          <th class="num sortable" data-sort="rbx" aria-sort="descending"><button type="button" class="sd-sort">Robux</button></th>
+          <th class="num">Robux/day</th><th class="num">% of revenue</th>
+          <th class="num sortable" data-sort="last" aria-sort="none"><button type="button" class="sd-sort">Last sale</button></th></tr>
+    </thead><tbody></tbody></table>
+    <div class="sd-fade"></div>
+  </div>
+  <button type="button" class="sd-more" id="itemsToggle" aria-expanded="false" aria-controls="itemsWrap" hidden>Show all ▾</button>
+</section>
+
+
+<div class="sd-lower">
+  <section class="panel" aria-labelledby="csvTitle">
+    <h2 id="csvTitle">Import monthly CSV</h2>
+    <div class="sub">Creator Hub sales exports for your configured groups (<code>Sales_Group…_YYYY-MM.csv</code> or <code>.csv.zip</code>). Re-importing a month replaces it.</div>
+    <label class="sd-drop" id="csvDrop"><span id="csvDropText">Choose or drop CSV / .zip files</span>
+      <input type="file" id="csvInput" accept=".csv,.zip" multiple></label>
+    <div id="csvResult" class="sub" role="status"></div>
+  </section>
+  <section class="panel" aria-labelledby="impTitle">
+    <h2 id="impTitle">Imported months</h2>
+    <div class="sub">CSV exports already loaded</div>
+    <div id="importLog"></div>
+  </section>
+</div>
+<footer class="sd-foot">Unofficial tool — not affiliated with or endorsed by Roblox. Read-only: it never changes anything on your account.</footer>
+</main>
+</body>
+</html>

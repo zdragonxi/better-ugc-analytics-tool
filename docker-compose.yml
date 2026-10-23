@@ -1,0 +1,26 @@
+# docker compose up -d   — then open http://127.0.0.1:8930
+# Needs: ./config.ini, ./roblox_cookie.txt (chmod 600) and RSA_PASSWORD_HASH in .env.
+services:
+  sales:
+    build: .
+    restart: unless-stopped
+    # run as YOUR user, so the container can read your chmod-600 cookie file and ./data
+    user: "${UID:-1000}:${GID:-1000}"
+    env_file: .env
+    environment:
+      RSA_CONFIG: /config/config.ini
+      RSA_DB_PATH: /data/sales.db
+      RSA_COOKIE_FILE: /run/secrets/roblox_cookie
+      # the Host header your browser sends when it reaches the published port
+      RSA_ALLOWED_HOSTS: 127.0.0.1:8930,localhost:8930
+    ports:
+      - "127.0.0.1:8930:8930"      # loopback only on the host
+    volumes:
+      - ./data:/data
+      - ./config.ini:/config/config.ini:ro
+    secrets:
+      - roblox_cookie
+
+secrets:
+  roblox_cookie:
+    file: ./roblox_cookie.txt
