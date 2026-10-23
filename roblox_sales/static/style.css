@@ -1,109 +1,327 @@
-/* Sales Analytics — dark dashboard theme */
+/* UGC Analytics — dark theme modelled on the Roblox Creator Dashboard.
+   1. page chrome: tokens, top bar, page container, shared controls
+   2. motion layer (entrances, hover lift, dialog pop-in), guarded by prefers-reduced-motion
+   3. the sales dashboard (.sales-dash)
+   4. app-only additions (recount button, footer, sign-in page) */
+
+/* ── 1. page chrome ───────────────────────────────────────────────────────────── */
 :root {
-  --sd-bg:#111214; --sd-card:#1c1e22; --sd-card2:#26282c; --sd-stroke:#2f3238;
-  --sd-text:#f4f5f6; --sd-dim:#9fa2a8; --sd-dimmer:#8a8d94; --sd-blue:#3b6dff; --sd-blue2:#6c8bff;
-  --sd-focus:#8ecbff; color-scheme:dark;
+  --bg:#121215;
+  --panel:#1a1b1f;          /* raised section */
+  --panel-2:#202127;        /* inputs */
+  /* three border tiers: decoration, operable controls (3:1 against the field), hover */
+  --line:#3a3d44;
+  --line-ctl:#6c6e74;
+  --line-hover:#8b8e97;
+  --chip:rgba(208,217,251,0.12);
+  --chip-hi:rgba(208,217,251,0.20);
+  --fg:#ffffff;
+  --subtle:#d5d7dd;
+  --dim:#8b8e97;
+  --muted:var(--subtle);
+  --accent:#00a2ff;         /* a fill / indicator colour; text on it uses --accent-fg */
+  --accent-hi:#33b4ff;
+  --accent-fg:#04243a;
+  --sel-bg:#d5d7dd; --sel-fg:#202227;   /* selected pill */
+  --green:#5cc85c; --green-fg:#08260a;
+  --red:#ff6b5e;   --red-fg:#2a0a08;
+  --focus:#8ecbff;          /* keyboard ring, :focus-visible only */
+  --r-card:12px; --r-ctl:8px; --r-pill:16px;
+  --font:"Builder Sans","Helvetica Neue",Helvetica,Arial,sans-serif;
 }
-*, *::before, *::after { box-sizing:border-box; }
+* { box-sizing:border-box; }
+/* rules that set `display` would otherwise beat the UA's [hidden]{display:none} */
 [hidden] { display:none !important; }
-html, body { margin:0; background:var(--sd-bg); }
-body { color:var(--sd-text); font:14px/1.5 "Builder Sans","Segoe UI",system-ui,sans-serif; }
-.sales-dash { max-width:1280px; margin:0 auto; padding:24px clamp(12px, 4vw, 40px) 40px; }
-.sales-dash :focus-visible { outline:2px solid var(--sd-focus); outline-offset:2px; }
-.sales-dash header { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:18px; }
-.sales-dash h1 { font-size:22px; font-weight:700; margin:0; }
-.sales-dash #status { color:var(--sd-dim); font-size:12px; max-width:60ch; }
-.sales-dash #status .dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#2dd06e; margin-right:5px; }
-.sales-dash #status.err .dot { background:#ff4d4d; }
-.sales-dash #status.warn .dot { background:#ffb74d; }
-.robux-pill { display:inline-flex; align-items:center; gap:6px; background:var(--sd-card); border:1px solid var(--sd-stroke);
-  border-radius:999px; padding:4px 12px; font-weight:700; font-size:13px; margin-left:auto; }
-.robux-pill svg { color:#ffd166; }
-.sales-dash .tabs { display:flex; flex-wrap:wrap; gap:4px; background:var(--sd-card); border:1px solid var(--sd-stroke); border-radius:8px; padding:3px; width:fit-content; max-width:100%; }
-.sales-dash .tabs button { background:none; border:0; color:var(--sd-dim); padding:6px 16px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600; transition:background .14s, color .14s; }
-.sales-dash .tabs button.on { background:var(--sd-card2); color:var(--sd-text); }
-.sales-dash .toolbar { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
-.sales-dash .cards { display:grid; grid-template-columns:repeat(auto-fit, minmax(190px,1fr)); gap:12px; margin-bottom:14px; }
-.sales-dash .card { background:var(--sd-card); border:1px solid var(--sd-stroke); border-radius:10px; padding:16px 18px; margin:0; cursor:pointer; position:relative; transition:border-color .14s, transform .14s cubic-bezier(.2,.7,.3,1); }
-.sales-dash .card:not(.plain):hover { transform:translateY(-2px); }
-.sales-dash .card.sel { border-color:var(--sd-blue); }
-.sales-dash .card.sel::after { content:""; position:absolute; left:18px; right:18px; bottom:0; height:3px; background:var(--sd-blue); border-radius:3px 3px 0 0; }
-.sales-dash .card .l { color:var(--sd-dim); font-size:13px; font-weight:600; }
-.sales-dash .card .v { font-size:26px; font-weight:700; margin-top:2px; }
-.sales-dash .card .s { color:var(--sd-dimmer); font-size:12px; margin-top:2px; }
-.sales-dash .card.plain { cursor:default; }
-.sales-dash button.card { display:block; width:100%; text-align:left; font:inherit; color:inherit; }
-.sales-dash button.card > span { display:block; }
-.sales-dash th .sd-sort { background:none; border:0; padding:0; margin:0; color:inherit; font:inherit; cursor:pointer; }
-.sales-dash th.sortable.on .sd-sort::after { content:" ▾"; }
-.sales-dash .sd-range { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:0 0 10px; font-size:12px; color:var(--sd-dim); }
-.sales-dash .sd-range label { margin:0; font-size:12px; color:var(--sd-dim); }
-.sales-dash .sd-range .sd-eye { margin-left:0; padding:5px 12px; font-size:12px; }
-.sales-dash input[type=date] { background:var(--sd-card2); color:var(--sd-text); border:1px solid var(--sd-stroke);
-  border-radius:6px; padding:5px 9px; font:inherit; font-size:13px; color-scheme:dark; min-height:32px; }
-.sales-dash input::-webkit-calendar-picker-indicator { cursor:pointer; opacity:.75; }
-.sales-dash .panel { background:var(--sd-card); border:1px solid var(--sd-stroke); border-radius:10px; padding:18px; margin-bottom:14px; overflow-x:auto; }
-.sales-dash .panel h2 { font-size:15px; font-weight:700; margin:0 0 2px; }
-.sales-dash .panel .sub { color:var(--sd-dim); font-size:12px; margin-bottom:12px; }
-.sales-dash .h2note { color:var(--sd-dim); font-weight:600; font-size:12px; }
-.sales-dash .chartwrap { position:relative; height:340px; }
-.sales-dash table { width:100%; border-collapse:collapse; font-size:13px; }
-.sales-dash th, .sales-dash td { text-align:left; padding:8px 10px; }
-.sales-dash th { color:var(--sd-dim); font-weight:600; border-bottom:1px solid var(--sd-stroke); font-size:12px; }
-.sales-dash th.sortable { cursor:pointer; user-select:none; }
-.sales-dash th.sortable:hover { color:var(--sd-text); }
-.sales-dash th.sortable.on { color:var(--sd-blue2); }
-.sales-dash tr + tr td { border-top:1px solid var(--sd-card2); }
-.sales-dash tr.total td { font-weight:700; }
+html,body { margin:0; padding:0; }
+/* keep content reached by Tab clear of the sticky header (its height is tracked in app.js) */
+html { scroll-padding-top:calc(var(--sticky-h, 72px) + 8px); }
+.skip-link { position:absolute; left:12px; top:-80px; z-index:700; padding:10px 16px;
+  border-radius:var(--r-ctl); background:var(--accent); color:var(--accent-fg); font-weight:700; }
+.skip-link:focus { top:12px; text-decoration:none; }
+main.wrap:focus { outline:none; }          /* the skip target (tabindex=-1), not a control */
+body {
+  background:var(--bg); color:var(--fg);
+  font-family:var(--font); font-size:14px; min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+a { color:var(--fg); text-decoration:none; }
+a:hover { text-decoration:underline; }
+
+/* subtle scrollbars */
+* { scrollbar-width:thin; scrollbar-color:#3a3d44 transparent; }
+::-webkit-scrollbar { width:10px; height:10px; }
+::-webkit-scrollbar-thumb { background:#3a3d44; border-radius:8px; border:3px solid var(--bg); }
+::-webkit-scrollbar-thumb:hover { background:#4a4d55; }
+::-webkit-scrollbar-track { background:transparent; }
+
+/* ── top bar ── */
+.topbar {
+  display:flex; align-items:center; gap:18px;
+  padding:0 26px; height:60px; background:var(--bg);
+  border-bottom:1px solid var(--line);
+}
+.stickytop { position:sticky; top:0; z-index:25; background:var(--bg); }
+.topbar .brand { font-weight:700; font-size:18px; letter-spacing:-.2px; }
+.topbar .brand .dot { color:var(--accent); }
+.topbar nav { display:flex; gap:8px; }
+.topbar nav a {
+  padding:8px 16px; border-radius:var(--r-pill); color:var(--fg);
+  background:var(--chip); font-weight:600; font-size:14px; line-height:1;
+}
+.topbar nav a:hover { background:var(--chip-hi); text-decoration:none; }
+.topbar nav a.active { background:var(--sel-bg); color:var(--sel-fg); }
+.topbar .spacer { flex:1; }
+.robux-pill { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:var(--r-pill);
+  background:var(--chip); color:var(--fg); font-weight:700; font-size:13px; line-height:1; }
+.robux-pill svg { width:14px; height:14px; opacity:.92; }
+.topbar form { margin:0; }
+
+.wrap { max-width:1180px; margin:0 auto; padding:30px 26px 70px; }
+h1 { font-size:28px; margin:0 0 6px; font-weight:700; letter-spacing:-.3px; }
+h2 { font-size:18px; margin:30px 0 12px; font-weight:700; }
+.sub { color:var(--subtle); margin:0 0 22px; font-size:14px; }
+
+.card {
+  background:var(--panel); border:1px solid var(--line);
+  border-radius:var(--r-card); padding:20px; margin-bottom:16px;
+}
+
+/* ── forms ── */
+label { display:block; font-size:13px; color:var(--subtle); margin:14px 0 6px; }
+input[type=text], input[type=password], input[type=number], select, textarea {
+  width:100%; background:var(--panel-2); color:var(--fg);
+  border:1px solid var(--line-ctl); border-radius:var(--r-ctl); padding:10px 12px;
+  font-family:inherit; font-size:14px;
+}
+input::placeholder, textarea::placeholder { color:var(--dim); }
+input[type=text]:focus, input[type=password]:focus, input[type=number]:focus,
+select:focus, textarea:focus { border-color:var(--accent); }
+input[type=text]:focus:not(:focus-visible), input[type=password]:focus:not(:focus-visible),
+input[type=number]:focus:not(:focus-visible), select:focus:not(:focus-visible),
+textarea:focus:not(:focus-visible) { outline:none; }
+
+.btn {
+  display:inline-block; background:var(--chip); color:var(--fg); border:1px solid var(--line-ctl);
+  border-radius:var(--r-ctl); padding:9px 17px; font-weight:600; font-size:14px;
+  cursor:pointer; font-family:inherit; line-height:1;
+}
+.btn.accent { border-color:transparent; }
+.btn:hover { background:var(--chip-hi); }
+.btn.accent { background:var(--accent); color:var(--accent-fg); }
+.btn.accent:hover { background:var(--accent-hi); }
+.btn.small { padding:5px 11px; font-size:12px; }
+.btn:disabled { opacity:.45; cursor:not-allowed; }
+
+table { width:100%; border-collapse:collapse; }
+th, td { text-align:left; padding:11px 12px; border-bottom:1px solid var(--line); }
+th { color:var(--subtle); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:.4px; }
+
+.flash { padding:12px 16px; border-radius:var(--r-ctl); margin-bottom:18px; font-weight:600; font-size:13px; }
+.flash.err { background:#301515; color:var(--red); border:1px solid #5c2c2c; }
+.center-page { display:flex; align-items:center; justify-content:center;
+               min-height:calc(100vh - 100px); }
+.login-card { width:100%; max-width:360px; }
+
+/* themed dialog (overlay + box), for any confirmation the app shows */
+.modal-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,.55); backdrop-filter:blur(2px);
+  display:flex; align-items:flex-start; justify-content:center; z-index:500;
+  overflow:auto; padding:3vh 0; overscroll-behavior:contain;
+}
+.modal {
+  background:var(--panel); border:1px solid var(--line); border-radius:var(--r-card);
+  padding:22px; width:360px; max-width:90vw; box-shadow:0 24px 60px rgba(0,0,0,.55);
+  margin:auto; max-height:94vh; display:flex; flex-direction:column;
+}
+.modal h3 { flex:none; margin:0 0 10px; font-size:16px; font-weight:700; }
+.modal .modal-body { flex:0 1 auto; min-height:0; overflow-y:auto; color:var(--subtle); font-size:14px;
+  margin-bottom:20px; white-space:pre-wrap; line-height:1.45; }
+.modal .modal-actions { flex:none; display:flex; justify-content:flex-end; gap:10px; }
+
+/* ── 2. motion & micro-interactions — additive polish only (no layout changes) ─── */
+:root { --ease:cubic-bezier(.2,.7,.3,1); --ease-out:cubic-bezier(.2,.9,.3,1); }
+html { scroll-behavior:smooth; }
+
+@keyframes fadeInUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
+@keyframes fadeIn   { from { opacity:0; } to { opacity:1; } }
+@keyframes popIn    { from { opacity:0; transform:scale(.96) translateY(6px); } to { opacity:1; transform:none; } }
+@keyframes slideDown{ from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:none; } }
+@keyframes overlayIn{ from { opacity:0; } to { opacity:1; } }
+@keyframes boxIn    { from { opacity:0; transform:scale(.94) translateY(10px); } to { opacity:1; transform:none; } }
+
+/* — the page arrives — */
+.topbar { animation:fadeIn .45s ease both; }
+.wrap h1 { animation:fadeInUp .5s var(--ease) both; }
+.wrap .sub { animation:fadeInUp .5s var(--ease) .05s both; }
+/* fill-mode `backwards`, not `both`: `both` would pin transform/opacity after the entrance and
+   cancel the hover lift. Only the delay phase needs the start frame. */
+.card { animation:fadeInUp .5s var(--ease) backwards; }
+.card:nth-of-type(2){ animation-delay:.06s } .card:nth-of-type(3){ animation-delay:.12s }
+.card:nth-of-type(4){ animation-delay:.18s } .card:nth-of-type(5){ animation-delay:.24s }
+
+/* — interactive lift / feedback — */
+.btn { transition:background .14s, transform .12s var(--ease), box-shadow .16s, color .14s; }
+.btn:hover { transform:translateY(-1px); box-shadow:0 4px 14px rgba(0,0,0,.28); }
+.btn:active { transform:translateY(0) scale(.97); box-shadow:none; }
+.btn.accent:hover { box-shadow:0 5px 18px rgba(0,162,255,.42); }
+.btn:disabled, .btn:disabled:hover { transform:none; box-shadow:none; }
+
+.topbar nav a { transition:background .15s, transform .12s var(--ease), color .15s; }
+.topbar nav a:hover { transform:translateY(-1px); }
+.topbar nav a:active { transform:translateY(0); }
+
+input[type=text], input[type=password], input[type=number], select, textarea {
+  transition:border-color .15s, box-shadow .15s, background .15s; }
+input:focus, select:focus, textarea:focus { box-shadow:0 0 0 3px rgba(0,162,255,.16); }
+
+/* — overlays — */
+.modal-overlay { animation:overlayIn .16s ease; }
+.modal-overlay .modal { animation:boxIn .24s var(--ease-out); }
+.flash { animation:slideDown .32s var(--ease); }
+
+/* keyboard focus: a ring for keyboard users only, never on a mouse click */
+:focus-visible { outline:2px solid var(--focus); outline-offset:2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration:.001ms !important; animation-iteration-count:1 !important;
+    /* the card stagger delays would otherwise hold content invisible; negative = already over */
+    animation-delay:-1ms !important;
+    transition-duration:.001ms !important; scroll-behavior:auto !important;
+  }
+  /* a zero duration does not undo a transform — remove the hover lifts outright */
+  .btn:hover, .topbar nav a:hover, .sales-dash .card:not(.plain):hover { transform:none !important; }
+}
+@media (prefers-contrast: more) {
+  :root { --line:var(--line-ctl); --dim:var(--subtle); }
+}
+/* high-contrast mode drops backgrounds; selected pills and tabs need an outline instead */
+@media (forced-colors: active) {
+  .topbar nav a.active, .sales-dash .tabs button.on, .sales-dash .card.sel { outline:2px solid Highlight; }
+}
+
+/* the bar wraps instead of overflowing on narrower windows */
+@media (max-width: 1340px) {
+  .topbar { flex-wrap:wrap; height:auto; padding:10px 14px; gap:10px; row-gap:8px; }
+  .topbar nav { flex-wrap:wrap; gap:6px; }
+}
+@media (max-width: 700px) {
+  .topbar nav a { padding:7px 12px; font-size:13px; }
+  .wrap { padding:20px 14px 60px; }
+}
+
+/* ── 3. sales dashboard ───────────────────────────────────────────────────────── */
+  .sales-dash *, .sales-dash *::before, .sales-dash *::after { box-sizing:border-box; }
+  .sales-dash { --sd-card:#1c1e22; --sd-card2:#26282c; --sd-stroke:#2f3238;
+    --sd-text:#f4f5f6; --sd-dim:#9fa2a8; --sd-dimmer:#8a8d94; --sd-blue:#3b6dff; --sd-blue2:#6c8bff;
+    color:var(--sd-text); font:14px/1.5 "Builder Sans","Segoe UI",system-ui,sans-serif; }
+  .sales-dash header { display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:18px; }
+  .sales-dash h1 { font-size:22px; font-weight:700; margin:0; }
+  .sales-dash #status { color:var(--sd-dim); font-size:12px; }
+  .sales-dash #status .dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#2dd06e; margin-right:5px; }
+  .sales-dash #status.err .dot { background:#ff4d4d; }
+  .sales-dash #status.warn .dot { background:#ffb74d; }
+  .sales-dash .tabs { display:flex; gap:4px; background:var(--sd-card); border:1px solid var(--sd-stroke); border-radius:8px; padding:3px; width:fit-content; }
+  .sales-dash .tabs button { background:none; border:0; color:var(--sd-dim); padding:6px 16px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600; transition:background .14s, color .14s; }
+  .sales-dash .tabs button.on { background:var(--sd-card2); color:var(--sd-text); }
+  .sales-dash .toolbar { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
+  .sales-dash .cards { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:12px; margin-bottom:14px; }
+  .sales-dash .card { background:var(--sd-card); border:1px solid var(--sd-stroke); border-radius:10px; padding:16px 18px; margin:0; cursor:pointer; position:relative; transition:border-color .14s, transform .14s cubic-bezier(.2,.7,.3,1); }
+  .sales-dash .card:not(.plain):hover { transform:translateY(-2px); }
+  .sales-dash .card.sel { border-color:var(--sd-blue); }
+  .sales-dash .card.sel::after { content:""; position:absolute; left:18px; right:18px; bottom:0; height:3px; background:var(--sd-blue); border-radius:3px 3px 0 0; }
+  .sales-dash .card .l { color:var(--sd-dim); font-size:13px; font-weight:600; }
+  .sales-dash .card .v { font-size:26px; font-weight:700; margin-top:2px; }
+  .sales-dash .card .s { color:var(--sd-dimmer); font-size:12px; margin-top:2px; }
+  .sales-dash .card.plain { cursor:default; }
+  /* the two metric switches are <button>s — reset the UA chrome, keep the card look */
+  .sales-dash button.card { display:block; width:100%; text-align:left; font:inherit; color:inherit; }
+  .sales-dash button.card > span { display:block; }
+  /* the sort header's text is a button (aria-sort on the th); ▾ marks the active sort */
+  .sales-dash th .sd-sort { background:none; border:0; padding:0; margin:0; color:inherit; font:inherit;
+    letter-spacing:inherit; text-transform:inherit; cursor:pointer; }
+  .sales-dash th.sortable.on .sd-sort::after { content:" ▾"; }
+  /* the keyboard alternative to drag-selecting a range on the chart */
+  .sales-dash .sd-range { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:0 0 10px; font-size:12px; color:var(--sd-dim); }
+  .sales-dash .sd-range label { margin:0; font-size:12px; color:var(--sd-dim); }
+  .sales-dash .sd-range .sd-eye { margin-left:0; padding:5px 12px; font-size:12px; }
+  /* dark date pickers (color-scheme:dark darkens the popup and its icon) */
+  .sales-dash input[type=date] {
+    background:var(--panel-2); color:var(--fg); border:1px solid var(--line-ctl);
+    border-radius:var(--r-ctl); padding:6px 10px; font:inherit; font-size:14px;
+    color-scheme:dark; min-height:34px; }
+  .sales-dash input[type=date]:focus { border-color:var(--accent); }
+  .sales-dash input::-webkit-calendar-picker-indicator { cursor:pointer; opacity:.75; }
+  .sales-dash input::-webkit-calendar-picker-indicator:hover { opacity:1; }
+  /* the CSV input is clipped-but-focusable; the drop zone shows its focus */
+  .sales-dash .sd-drop { position:relative; }
+  .sales-dash .sd-drop input[type=file] { position:absolute; width:1px; height:1px; opacity:0; overflow:hidden; }
+  .sales-dash .sd-drop:has(input:focus-visible) { outline:2px solid var(--focus, #8ecbff); outline-offset:2px; }
+  /* wide tables scroll inside their panel at phone width instead of widening the page */
+  .sales-dash .panel { overflow-x:auto; }
+  .sales-dash .sd-items { overflow-x:auto; overflow-y:hidden; }
+  .sales-dash .panel { background:var(--sd-card); border:1px solid var(--sd-stroke); border-radius:10px; padding:18px; margin-bottom:14px; }
+  .sales-dash .panel h2 { font-size:15px; font-weight:700; margin:0 0 2px; }
+  .sales-dash .panel .sub { color:var(--sd-dim); font-size:12px; margin-bottom:12px; }
+  .sales-dash .chartwrap { position:relative; height:340px; }
+  .sales-dash table { width:100%; border-collapse:collapse; font-size:13px; }
+  .sales-dash th, .sales-dash td { text-align:left; padding:8px 10px; }
+  .sales-dash th { color:var(--sd-dim); font-weight:600; border-bottom:1px solid var(--sd-stroke); font-size:12px; }
+  .sales-dash th.sortable { cursor:pointer; user-select:none; }
+  .sales-dash th.sortable:hover { color:var(--sd-text); }
+  .sales-dash th.sortable.on { color:var(--sd-blue2); }
+  .sales-dash tr + tr td { border-top:1px solid #26282c; }
+  .sales-dash td.num, .sales-dash th.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .sales-dash td .swatch { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:8px; vertical-align:middle; }
+  .sales-dash .sd-lower { display:grid; grid-template-columns:repeat(auto-fit, minmax(330px, 1fr)); gap:14px; }
+  .sales-dash .sd-lower .panel { margin-bottom:0; }
+  .sales-dash .sd-drop { display:flex; align-items:center; justify-content:center; text-align:center; padding:22px;
+    border:1.5px dashed var(--sd-stroke); border-radius:10px; cursor:pointer; color:var(--sd-dim); font-weight:600;
+    transition:border-color .14s, background .14s, color .14s; }
+  .sales-dash .sd-drop:hover, .sales-dash .sd-drop.drag { border-color:var(--sd-blue); color:var(--sd-text); background:rgba(59,109,255,.07); }
+  .sales-dash #csvResult { margin-top:10px; line-height:1.7; }
+  .sales-dash .imp-src { margin-bottom:12px; }
+  .sales-dash .imp-src-name { font-weight:700; font-size:13px; margin-bottom:6px; }
+  .sales-dash .imp-chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .sales-dash .imp-chip { background:rgba(92,200,92,.14); color:#8fe0a0; border:1px solid rgba(92,200,92,.3);
+    border-radius:20px; padding:3px 10px; font-size:12px; font-weight:600; cursor:default; }
+  /* items table: collapsed to ~7 rows with a fade-out; expandable */
+  .sales-dash .sd-items { position:relative; max-height:322px; overflow:hidden; transition:max-height .35s cubic-bezier(.2,.7,.3,1); }
+  .sales-dash .sd-items.open { max-height:4000px; }
+  .sales-dash .sd-items.short { max-height:none; }
+  .sales-dash .sd-fade { position:absolute; left:0; right:0; bottom:0; height:80px; pointer-events:none;
+    background:linear-gradient(rgba(28,30,34,0), var(--sd-card)); transition:opacity .2s; }
+  .sales-dash .sd-items.open .sd-fade, .sales-dash .sd-items.short .sd-fade { opacity:0; }
+  .sales-dash .sd-more { margin-top:10px; background:none; border:0; color:var(--sd-blue2); font-weight:600;
+    cursor:pointer; font-size:13px; padding:4px 0; }
+  .sales-dash .sd-more:hover { text-decoration:underline; }
+  /* showcase mode: blur every number outside the graphs so the page can be screen-shared —
+     layout stays intact, charts stay fully visible */
+  .sales-dash .sd-eye { margin-left:auto; background:var(--sd-card); border:1px solid var(--sd-stroke);
+    color:var(--sd-dim); border-radius:8px; padding:6px 14px; font-size:13px; font-weight:600;
+    cursor:pointer; transition:color .14s, border-color .14s; }
+  .sales-dash .sd-eye:hover { color:var(--sd-text); border-color:var(--sd-blue); }
+  .sales-dash.showcase .sd-eye { color:var(--sd-blue2); border-color:var(--sd-blue); }
+  .sales-dash.showcase .card .v, .sales-dash.showcase .card .s,
+  .sales-dash.showcase .sd-money,
+  .sales-dash.showcase #statusText,
+  .sales-dash.showcase #tbl tbody,
+  .sales-dash.showcase #importLog, .sales-dash.showcase #csvResult,
+  /* the top-bar balance sits outside .sales-dash, hence :has */
+  body:has(.sales-dash.showcase) #robuxVal, .sales-dash.showcase #chartSub
+    { filter:blur(8px); user-select:none; pointer-events:none; }
+
+/* ── 4. app-only additions ────────────────────────────────────────────────────── */
+/* the "recount items on sale" button inside the Items On Sale card label */
 .sales-dash .sd-refresh { background:none; border:0; color:var(--sd-dim); cursor:pointer; font:inherit;
   font-size:13px; padding:0 4px; margin-left:4px; border-radius:4px; }
 .sales-dash .sd-refresh:hover { color:var(--sd-text); background:var(--sd-card2); }
 .sales-dash .sd-refresh:disabled { opacity:.4; cursor:default; }
-.sales-dash td.num, .sales-dash th.num { text-align:right; font-variant-numeric:tabular-nums; }
-.sales-dash td .swatch { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:8px; vertical-align:middle; }
-.sales-dash .sd-lower { display:grid; grid-template-columns:repeat(auto-fit, minmax(330px, 1fr)); gap:14px; }
-.sales-dash .sd-lower .panel { margin-bottom:0; }
-.sales-dash .sd-drop { position:relative; display:flex; align-items:center; justify-content:center; text-align:center; padding:22px;
-  border:1.5px dashed var(--sd-stroke); border-radius:10px; cursor:pointer; color:var(--sd-dim); font-weight:600;
-  transition:border-color .14s, background .14s, color .14s; }
-.sales-dash .sd-drop input[type=file] { position:absolute; width:1px; height:1px; opacity:0; overflow:hidden; }
-.sales-dash .sd-drop:has(input:focus-visible) { outline:2px solid var(--sd-focus); outline-offset:2px; }
-.sales-dash .sd-drop:hover, .sales-dash .sd-drop.drag { border-color:var(--sd-blue); color:var(--sd-text); background:rgba(59,109,255,.07); }
-.sales-dash #csvResult { margin-top:10px; line-height:1.7; }
-.sales-dash .imp-src { margin-bottom:12px; }
-.sales-dash .imp-src-name { font-weight:700; font-size:13px; margin-bottom:6px; }
-.sales-dash .imp-chips { display:flex; flex-wrap:wrap; gap:6px; }
-.sales-dash .imp-chip { background:rgba(92,200,92,.14); color:#8fe0a0; border:1px solid rgba(92,200,92,.3);
-  border-radius:20px; padding:3px 10px; font-size:12px; font-weight:600; cursor:default; }
-.sales-dash .sd-items { position:relative; max-height:322px; overflow:hidden; transition:max-height .35s cubic-bezier(.2,.7,.3,1); }
-.sales-dash .sd-items.open { max-height:4000px; }
-.sales-dash .sd-items.short { max-height:none; }
-.sales-dash .sd-fade { position:absolute; left:0; right:0; bottom:0; height:80px; pointer-events:none;
-  background:linear-gradient(rgba(28,30,34,0), var(--sd-card)); transition:opacity .2s; }
-.sales-dash .sd-items.open .sd-fade, .sales-dash .sd-items.short .sd-fade { opacity:0; }
-.sales-dash .sd-more { margin-top:10px; background:none; border:0; color:var(--sd-blue2); font-weight:600; cursor:pointer; font-size:13px; padding:4px 0; }
-.sales-dash .sd-more:hover { text-decoration:underline; }
-.sales-dash .sd-eye { background:var(--sd-card); border:1px solid var(--sd-stroke); color:var(--sd-dim); border-radius:8px;
-  padding:6px 14px; font-size:13px; font-weight:600; cursor:pointer; transition:color .14s, border-color .14s; }
-.sales-dash header .sd-eye { margin-left:0; }
-.sales-dash header .robux-pill[hidden] + .sd-eye { margin-left:auto; }
-.sales-dash .sd-eye:hover { color:var(--sd-text); border-color:var(--sd-blue); }
-.sales-dash.showcase .sd-eye { color:var(--sd-blue2); border-color:var(--sd-blue); }
-.sales-dash .sd-foot { color:var(--sd-dimmer); font-size:12px; text-align:center; margin-top:22px; }
-.sales-dash code { font-size:12px; }
-/* showcase mode: blur every number outside the graphs so the page can be screen-shared */
-.sales-dash.showcase .card .v, .sales-dash.showcase .card .s, .sales-dash.showcase .sd-money,
-.sales-dash.showcase #statusText, .sales-dash.showcase #robuxVal,
-.sales-dash.showcase #tbl tbody,
-.sales-dash.showcase #importLog, .sales-dash.showcase #csvResult, .sales-dash.showcase #chartSub
-  { filter:blur(8px); user-select:none; pointer-events:none; }
-@media (prefers-reduced-motion: reduce) { .sales-dash * { transition:none !important; } }
-/* sign-in page */
-body.login { display:grid; place-items:center; min-height:100vh; padding:16px; }
-body.login form { background:var(--sd-card); border:1px solid var(--sd-stroke); border-radius:10px; padding:24px;
-  width:min(340px, 100%); display:grid; gap:10px; }
-body.login h1 { font-size:20px; margin:0 0 6px; }
-body.login label { color:var(--sd-dim); font-size:13px; font-weight:600; }
-body.login input { background:var(--sd-card2); color:var(--sd-text); border:1px solid var(--sd-stroke); border-radius:6px; padding:8px 10px; font:inherit; }
-body.login button { background:var(--sd-blue); color:#fff; border:0; border-radius:6px; padding:9px; font:inherit; font-weight:700; cursor:pointer; }
-body.login .err { color:#ff8a8a; margin:0; font-size:13px; }
+/* phone width: let the store / range tab strips wrap instead of widening the page (a store
+   list longer than the screen otherwise scrolls the whole page sideways) */
+@media (max-width: 700px) {
+  .sales-dash .tabs { flex-wrap:wrap; max-width:100%; }
+}
+/* the notice under the dashboard (this app is unofficial) */
+.sd-foot { color:var(--dim); font-size:12px; text-align:center; margin:26px 0 0; }
+.login-card .flash { margin:0 0 12px; }

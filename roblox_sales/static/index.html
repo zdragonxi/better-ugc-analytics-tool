@@ -1,24 +1,36 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sales Analytics</title>
-<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/static/style.css">
-<script src="/static/chart-4.4.1.umd.js" defer></script>
-<script src="/static/golden.js" defer></script>
-<script src="/static/app.js" defer></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sales · UGC Analytics</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/chart-4.4.1.umd.js" defer></script>
+  <script src="/static/golden.js" defer></script>
+  <script src="/static/app.js" defer></script>
 </head>
 <body>
-<main class="sales-dash" id="dash">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="stickytop">
+  <div class="topbar">
+    <span class="brand">UGC&nbsp;Analytics<span class="dot">.</span></span>
+    <nav>
+      <a href="/" class="active" aria-current="page">Home</a>
+    </nav>
+    <div class="spacer"></div>
+    <span class="robux-pill" id="robuxPill" title="Account robux balance" hidden>
+      <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 1.2 14.2 4.6v6.8L8 14.8 1.8 11.4V4.6L8 1.2Zm0 3.1L5.1 5.9v4.2L8 11.7l2.9-1.6V5.9L8 4.3Z"/></svg>
+      <span id="robuxVal">–</span>
+    </span>
+    <form method="post" action="/sign-out" id="signOut" hidden><button class="btn small">Log out</button></form>
+  </div>
+  </div>
+  <main class="wrap" id="main" tabindex="-1">
+<div class="sales-dash" id="dash">
 <header>
   <h1>Sales Analytics</h1>
   <div id="status"><span class="dot"></span><span id="statusText">connecting…</span></div>
-  <span class="robux-pill" id="robuxPill" title="Your account's Robux balance" hidden>
-    <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" d="M12 2.6 20.2 7.3v9.4L12 21.4 3.8 16.7V7.3z"/><rect x="9" y="9" width="6" height="6" rx="1" fill="currentColor"/></svg>
-    <span id="robuxVal">–</span>
-  </span>
   <button type="button" class="sd-eye" id="btnShowcase" aria-pressed="false"
           title="Blur all numbers for screen-sharing — graphs stay visible">Hide stats</button>
 </header>
@@ -46,7 +58,7 @@
     <div class="s" id="sFunds">current balance</div>
   </div>
   <div class="card plain">
-    <div class="l">Items On Sale <button type="button" class="sd-refresh" id="btnCatalog"
+    <div class="l">Items On Sale<button type="button" class="sd-refresh" id="btnCatalog" hidden
       title="Recount items on sale now (read-only; at most once a minute)" aria-label="Recount items on sale">↻</button></div>
     <div class="v" id="vItems">–</div>
     <div class="s" id="sItems">in catalog</div>
@@ -55,21 +67,21 @@
     <div class="l">In-game / Website</div><div class="v" id="vLoc">–</div>
     <div class="s" id="sLoc">where sales happen</div>
   </div>
-  <div class="card plain">
-    <div class="l">Avg / Day</div><div class="v" id="vAvg">–</div>
-    <div class="s" id="sAvg"></div>
-  </div>
-  <div class="card plain">
-    <div class="l">Avg / Sale</div><div class="v" id="vAvgSale">–</div>
-    <div class="s">Robux per sale in range</div>
-  </div>
   <div class="card plain" title="(pending Robux ÷ items on sale) ÷ average Robux per sale in the selected range">
     <div class="l">Golden Ratio</div><div class="v" id="vGolden">–</div>
     <div class="s">(pending ÷ items) ÷ avg sale</div>
   </div>
+  <div class="card plain">
+    <div class="l">Avg / Day</div><div class="v" id="vAvg">–</div>
+    <div class="s" id="sAvg"></div>
+  </div>
+  <div class="card plain" title="Average Robux per sale in the selected range">
+    <div class="l">Avg / Sale</div><div class="v" id="vAvgSale">–</div>
+    <div class="s">Robux per sale in range</div>
+  </div>
 </div>
 
-<section class="panel" aria-labelledby="chartTitle">
+<div class="panel">
   <h2 id="chartTitle">Robux Earned</h2>
   <div class="sub" id="chartSub"></div>
   <form class="sd-range" id="rangeForm">
@@ -78,11 +90,11 @@
     <button type="submit" class="sd-eye">Show range</button>
   </form>
   <div class="chartwrap"><canvas id="chMain" role="img" aria-label="Sales chart" aria-describedby="chartSub"></canvas></div>
-</section>
+</div>
 
-<section class="panel" aria-labelledby="itemsTitle">
-  <h2 id="itemsTitle">Items</h2>
-  <div class="sub">Selected range, sorted by Robux</div>
+<div class="panel">
+  <h2>Items</h2>
+  <div class="sub">Selected range, sorted by robux</div>
   <div class="sd-items" id="itemsWrap">
     <table id="tbl"><thead>
       <tr><th>Item</th>
@@ -94,24 +106,24 @@
     <div class="sd-fade"></div>
   </div>
   <button type="button" class="sd-more" id="itemsToggle" aria-expanded="false" aria-controls="itemsWrap" hidden>Show all ▾</button>
-</section>
-
+</div>
 
 <div class="sd-lower">
-  <section class="panel" aria-labelledby="csvTitle">
-    <h2 id="csvTitle">Import monthly CSV</h2>
-    <div class="sub">Creator Hub sales exports for your configured groups (<code>Sales_Group…_YYYY-MM.csv</code> or <code>.csv.zip</code>). Re-importing a month replaces it.</div>
+  <div class="panel">
+    <h2>Import monthly CSV</h2>
+    <div class="sub">Drop Creator-Hub exports for your configured groups (<code>Sales_Group…_YYYY-MM.csv</code> or <code>.csv.zip</code>). Re-importing a month replaces it.</div>
     <label class="sd-drop" id="csvDrop"><span id="csvDropText">Choose or drop CSV / .zip files</span>
       <input type="file" id="csvInput" accept=".csv,.zip" multiple></label>
     <div id="csvResult" class="sub" role="status"></div>
-  </section>
-  <section class="panel" aria-labelledby="impTitle">
-    <h2 id="impTitle">Imported months</h2>
-    <div class="sub">CSV exports already loaded</div>
+  </div>
+  <div class="panel">
+    <h2>Imported months</h2>
+    <div class="sub">CSVs already loaded</div>
     <div id="importLog"></div>
-  </section>
+  </div>
 </div>
-<footer class="sd-foot">Unofficial tool — not affiliated with or endorsed by Roblox. Read-only: it never changes anything on your account.</footer>
-</main>
+<p class="sd-foot">Unofficial tool — not affiliated with or endorsed by Roblox. Read-only: it never changes anything on your account.</p>
+</div>
+  </main>
 </body>
 </html>

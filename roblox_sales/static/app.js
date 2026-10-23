@@ -13,7 +13,7 @@ const STYLES = ["circle", "rectRot", "triangle", "rect", "star", "crossRot"];
 const TOTAL_COLOR = "#3b6dff", OTHER_COLOR = "#b18cff", ATH_COLOR = "#ff4d4d";
 const $ = id => document.getElementById(id);
 const fmt = n => Math.round(n).toLocaleString("en-US");
-const fmtDate = k => { const [y, m, d] = k.split("-"); return `${y}-${m}-${d}`; };
+const fmtDate = k => { const [y, m, d] = k.split("-"); return `${+d}/${+m}/${y}`; };   // 4/7/2026
 
 // The page must keep working if Chart.js fails to load: cards, tables and import still render.
 const HAVE_CHART = typeof Chart !== "undefined";
@@ -469,7 +469,7 @@ document.querySelectorAll("th.sortable .sd-sort").forEach(b =>
   b.addEventListener("click", () => { sortKey = b.closest("th").dataset.sort; render(); }));
 
 // ── current Robux balance (top-bar pill) ─────────────────────────────────────
-const fmtShort = n => n >= 1000 ? (Math.floor(n / 10) / 100).toFixed(2) + "K" : String(n);
+const fmtShort = n => n >= 1000 ? (Math.floor(n / 10) / 100).toFixed(2) + "K+" : n.toLocaleString();
 function renderBalance() {
   if (!BAL || BAL.robux == null) return;
   $("robuxVal").textContent = fmtShort(BAL.robux);
@@ -570,6 +570,7 @@ async function loadData(live) {
     }
     if (!j.error) {
       render(); renderBalance(); renderImportLog(j.imports);
+      $("signOut").hidden = !st.auth;
       $("btnCatalog").hidden = !st.polling;
     }
     if (reconnectTimer) { clearInterval(reconnectTimer); reconnectTimer = null; }
@@ -598,6 +599,12 @@ $("btnShowcase").onclick = () => setShowcase(!_dash.classList.contains("showcase
 try { if (localStorage.getItem("rsa_showcase") === "1") setShowcase(true); } catch (_) { /* storage blocked */ }
 
 wireCsv();
+// keep html{scroll-padding-top} equal to the sticky header's real height (it wraps on narrow screens)
+(function () {
+  const st = document.querySelector(".stickytop");
+  if (!st || typeof ResizeObserver === "undefined") return;
+  new ResizeObserver(() => document.documentElement.style.setProperty("--sticky-h", st.offsetHeight + "px")).observe(st);
+})();
 $("btnCatalog").addEventListener("click", async () => {
   const b = $("btnCatalog");
   b.disabled = true;

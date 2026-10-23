@@ -82,8 +82,9 @@ def read_data(db, cfg, poller_state: dict, epoch: str = "", have_rowid: int = -1
         "catalog": {k: {f: v.get(f) for f in ("items", "as_of", "attempt", "error")}
                     for k, v in cat.items() if k in names},
         "imports": [dict(i, name=names.get(i["source"], i["source"])) for i in imports],
-        "status": {k: poller_state.get(k) for k in
-                   ("polling", "last_sync", "sync_error", "signed_in")},
+        "status": dict({k: poller_state.get(k) for k in
+                        ("polling", "last_sync", "sync_error", "signed_in")},
+                       auth=bool(cfg.password_hash)),
         "server_time": int(time.time()),
     })
     return out
@@ -305,16 +306,22 @@ def make_handler(app: App):
             self._send(303, b"", "text/plain", extra)
 
         def _login_page(self, error=False):
-            msg = '<p class="err" role="alert">Wrong password, or too many attempts — wait a few minutes.</p>' \
-                if error else ""
-            html = (f'<!doctype html><html lang="en"><head><meta charset="utf-8">'
-                    f'<meta name="viewport" content="width=device-width,initial-scale=1">'
-                    f'<title>Sign in · Sales Analytics</title>'
-                    f'<link rel="stylesheet" href="/static/style.css"></head>'
-                    f'<body class="login"><form method="post" action="/login" class="panel">'
-                    f'<h1>Sales Analytics</h1>{msg}<label for="pw">Password</label>'
-                    f'<input id="pw" name="password" type="password" autocomplete="current-password" '
-                    f'required autofocus><button type="submit">Sign in</button></form></body></html>')
+            msg = ('<div class="flash err" role="alert">Wrong password, or too many attempts — '
+                   'wait a few minutes.</div>') if error else ""
+            html = ('<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">'
+                    '<meta name="viewport" content="width=device-width, initial-scale=1">'
+                    '<title>Log in · UGC Analytics</title>'
+                    '<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">'
+                    '<link rel="stylesheet" href="/static/style.css"></head><body>'
+                    '<main class="wrap" id="main"><div class="center-page"><div class="card login-card">'
+                    '<h1>UGC&nbsp;Analytics<span class="dot" style="color:var(--accent)">.</span></h1>'
+                    '<p class="sub">Sign in to view your sales dashboard.</p>' + msg +
+                    '<form method="post" action="/login">'
+                    '<label for="lgPass">Password</label>'
+                    '<input type="password" name="password" id="lgPass" autofocus '
+                    'autocomplete="current-password" required>'
+                    '<div style="margin-top:18px"><button class="btn accent" style="width:100%">'
+                    'Log in</button></div></form></div></div></main></body></html>')
             self._send(200, html.encode(), "text/html; charset=utf-8")
 
         def _login(self):

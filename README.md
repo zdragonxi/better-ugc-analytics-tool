@@ -158,7 +158,8 @@ and no password is needed. To reach it from another machine:
 3. Set `allowed_hosts` to the host:port you browse to, and put it behind HTTPS (a reverse proxy)
    if it leaves your LAN.
 
-Sessions are in memory (restart = sign in again), the login is throttled per address, cookies are
+With a password set, a **Log out** button appears in the top bar. Sessions are in memory
+(restart = sign in again), the login is throttled per address, cookies are
 `HttpOnly; SameSite=Strict`, the CSV upload needs a custom header a cross-site form cannot send,
 and an unknown `Host` header is refused (DNS-rebinding protection).
 

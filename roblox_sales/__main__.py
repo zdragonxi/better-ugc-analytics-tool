@@ -60,7 +60,7 @@ def cmd_sync(args):
     s = roblox.make_session(cfg.cookie(), cfg.proxy)
     try:
         me = roblox.authenticated_user(s)
-        print(f"Cookie accepted. Syncing {len(cfg.stores)} store(s)…", flush=True)
+        print(f"Cookie accepted. Syncing {len(cfg.stores)} store(s)...", flush=True)
         if cfg.groups:
             sync.refresh_financials(db, s, cfg)
         bal = sync.fetch_balance(s)
@@ -190,7 +190,20 @@ def cmd_demo(args):
         cmd_serve(args)
 
 
+def _console_utf8():
+    """Messages contain a few non-ASCII characters (dashes, arrows). A Windows pipe or a
+    terminal emulator gets the legacy code page by default and shows them as mojibake, so
+    switch the text streams to UTF-8 when they are not already; never fail over it."""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            if (stream.encoding or "").lower().replace("-", "").replace("_", "") != "utf8":
+                stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError, OSError):
+            pass
+
+
 def main(argv=None):
+    _console_utf8()
     ap = argparse.ArgumentParser(prog="python -m roblox_sales",
                                  description="Self-hosted, read-only Roblox sales dashboard")
     ap.add_argument("--config", default=None, help="config file (default: RSA_CONFIG or config.ini)")

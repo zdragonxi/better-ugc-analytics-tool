@@ -53,25 +53,46 @@ def find_browser():
     return None
 
 
-def run_cases(lib: str) -> str:
-    """Run CASES against `lib` in a headless browser; return the text of <pre id="out">
-    only. (The dumped DOM also contains the script source, so searching the whole dump
-    for a verdict word would find it in the source and pass no matter what ran.)"""
+def run_page(scripts: str) -> str:
+    """Load a page with `scripts` in a headless browser; return the text of <pre id="out">
+    only ("" when the browser printed nothing at all). The dumped DOM also contains the script
+    source, so searching the whole dump for a verdict word would find it in the source and
+    pass no matter what ran."""
     tmp = tempfile.mkdtemp(prefix="rsa-golden-")
     try:
         page = os.path.join(tmp, "golden_test.html")
         with open(page, "w", encoding="utf-8") as f:
-            f.write(f'<!doctype html><meta charset="utf-8"><pre id="out">NOT RUN</pre>'
-                    f"<script>{lib}</script><script>{CASES}</script>")
+            f.write(f'<!doctype html><meta charset="utf-8"><pre id="out">NOT RUN</pre>{scripts}')
         dump = subprocess.run(
             [find_browser(), "--headless=new", "--disable-gpu", "--no-first-run",
              f"--user-data-dir={os.path.join(tmp, 'profile')}", "--dump-dom",
              pathlib.Path(page).as_uri()],
             capture_output=True, text=True, timeout=90, encoding="utf-8", errors="replace").stdout
+        if not dump.strip():
+            return ""
         m = re.search(r'<pre id="out">(.*?)</pre>', dump, re.S)
         return m.group(1).strip() if m else "NO RESULT ELEMENT"
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
+
+
+def run_cases(lib: str) -> str:
+    return run_page(f"<script>{lib}</script><script>{CASES}</script>")
+
+
+_PROBE = {}
+
+
+def browser_works() -> bool:
+    """Some environments (e.g. a Windows venv interpreter) start headless Edge but get no
+    output back. Probe once with a trivial page so those runs skip instead of failing."""
+    if "ok" not in _PROBE:
+        try:
+            _PROBE["ok"] = run_page('<script>document.getElementById("out").textContent = '
+                                    '"PROBE" + "-OK";</script>') == "PROBE-OK"
+        except (OSError, subprocess.SubprocessError):
+            _PROBE["ok"] = False
+    return _PROBE["ok"]
 
 
 def golden_source() -> str:
@@ -81,6 +102,10 @@ def golden_source() -> str:
 
 @unittest.skipUnless(find_browser(), "no headless Chromium-family browser found")
 class GoldenRatioJsTests(unittest.TestCase):
+    def setUp(self):
+        if not browser_works():
+            self.skipTest("headless browser produced no output in this environment")
+
     def test_formula_and_null_cases(self):
         self.assertEqual(run_cases(golden_source()), "ALLPASS")
 
