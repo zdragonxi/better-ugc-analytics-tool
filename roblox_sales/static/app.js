@@ -190,15 +190,6 @@ function setupRangeSelect() {
   });
   canvas.addEventListener("pointercancel", () => { dragging = false; sel.style.display = "none"; });
 }
-// the keyboard / single-pointer alternative to dragging (inclusive of both days)
-$("rangeForm").addEventListener("submit", e => {
-  e.preventDefault();
-  let a = $("rgFrom").value, b = $("rgTo").value;
-  if (!a || !b) return;
-  if (a > b) [a, b] = [b, a];
-  customRange = { s: new Date(a + "T00:00:00Z").getTime(), e: new Date(b + "T00:00:00Z").getTime() + 864e5 - 1 };
-  render();
-});
 
 function render() {
   const data = filtered();
@@ -211,8 +202,6 @@ function render() {
     curSrc, v => { curSrc = v; customRange = null; render(); });
   const cmp = curSrc === "Compare";
   $("rangeTabs").style.display = cmp ? "none" : "";
-  $("rangeForm").hidden = cmp;
-  if (customRange) { $("rgFrom").value = dayKey(customRange.s); $("rgTo").value = dayKey(customRange.e); }
   if (cmp) $("rangeTabs").replaceChildren();
   else {
     mkTabs($("rangeTabs"),

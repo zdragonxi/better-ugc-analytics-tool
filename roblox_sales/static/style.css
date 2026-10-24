@@ -242,9 +242,6 @@ input:focus, select:focus, textarea:focus { box-shadow:0 0 0 3px rgba(0,162,255,
     letter-spacing:inherit; text-transform:inherit; cursor:pointer; }
   .sales-dash th.sortable.on .sd-sort::after { content:" ▾"; }
   /* the keyboard alternative to drag-selecting a range on the chart */
-  .sales-dash .sd-range { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:0 0 10px; font-size:12px; color:var(--sd-dim); }
-  .sales-dash .sd-range label { margin:0; font-size:12px; color:var(--sd-dim); }
-  .sales-dash .sd-range .sd-eye { margin-left:0; padding:5px 12px; font-size:12px; }
   /* dark date pickers (color-scheme:dark darkens the popup and its icon) */
   .sales-dash input[type=date] {
     background:var(--panel-2); color:var(--fg); border:1px solid var(--line-ctl);
