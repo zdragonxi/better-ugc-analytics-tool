@@ -73,8 +73,65 @@ def cmd_sync(args):
         name = cfg.store(r.source).name if cfg.store(r.source) else r.source
         state = ("TRUNCATED (import the CSV export)" if r.truncated else
                  f"ERROR {r.error}" if r.error else "ok")
+        if r.fallback:
+            state += f"  [older transactions API: sales API answered {r.fallback}]"
         print(f"  {name:<24} {r.pages:>4} page(s)  {r.new:>6} new  {state}")
     if any(r.error or r.truncated for r in results):
+        sys.exit(1)
+
+
+def _day(v: str | None, what: str):
+    if not v:
+        return None
+    try:
+        return datetime.strptime(v, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    except ValueError:
+        sys.exit(f"{what} must be a date like 2026-07-01")
+
+
+def cmd_backfill(args):
+    cfg = _load(args)
+    if not cfg.cookie():
+        sys.exit("no cookie configured (RSA_COOKIE or the cookie file) — see README")
+    if args.store and not (cfg.store(args.store) and cfg.store(args.store).group_id is not None):
+        sys.exit(f"{args.store!r} is not a configured group; backfill reads groups only "
+                 f"(known: {', '.join(s.source for s in cfg.groups) or 'none'})")
+    if not cfg.groups:
+        sys.exit("no groups configured")
+    since, until = _day(args.since, "--since"), _day(args.until, "--until")
+    db = store.connect(cfg.db_path)
+    sources = [args.store] if args.store else None
+    if not args.restart and (since or until):
+        for st in cfg.groups:
+            old = store.get_json_meta(db, f"backfill:{st.source}")
+            if old and (sources is None or st.source in sources):
+                print(f"  {st.name}: resuming the earlier backfill ({old['since'][:10]} → "
+                      f"{old['until'][:10]}); add --restart to use the new dates")
+    s = roblox.make_session(cfg.cookie(), cfg.proxy)
+    try:
+        roblox.authenticated_user(s)
+        print("Cookie accepted. Backfilling (at most 40 requests a minute; Ctrl+C stops, "
+              "running it again resumes)...", flush=True)
+        out = sync.backfill(db, s, cfg, sources=sources, since=since, until=until,
+                            restart=args.restart)
+    except roblox.AuthError as e:
+        sys.exit(str(e))
+    except KeyboardInterrupt:
+        sys.exit("\nstopped — run the same command again to resume")
+    bad = False
+    for r, state in out:
+        name = cfg.store(r.source).name
+        through = (state.get("through") or state["since"])[:16].replace("T", " ")
+        if r.error:
+            bad = True
+            print(f"  {name:<24} stopped at {through} UTC: {r.error} — run again to resume"
+                  + (" (if this is before the API's first data, use a later --since)"
+                     if "not trusted" in r.error else ""))
+        else:
+            print(f"  {name:<24} complete {state['since'][:10]} → {state['until'][:10]}: "
+                  f"{r.new:,} new, {r.requests:,} request(s)"
+                  + ("" if r.requests else "  (already complete; --restart reads it again)"))
+    if bad:
         sys.exit(1)
 
 
@@ -151,6 +208,10 @@ def cmd_stats(args):
         st = cfg.store(src)
         wm = store.get_watermark(db, src)
         when = f"synced through {wm:%Y-%m-%d %H:%M} UTC" if wm else "never synced by the API"
+        if st and st.group_id is not None:
+            api = sync.api_state(db, src)
+            when += ("   older transactions API (sales API answered "
+                     f"{api.get('reason')})" if api.get("mode") == "fallback" else "")
         print(f"  {(st.name if st else src):<24} {c:>8,} sales {r:>12,} Robux   {when}")
 
 
@@ -217,6 +278,15 @@ def main(argv=None):
 
     p = sub.add_parser("sync", help="one sync of every store, then exit")
     p.set_defaults(func=cmd_sync)
+
+    p = sub.add_parser("backfill", help="read older group sales from the sales API "
+                                        "(resumable; never runs by itself)")
+    p.add_argument("--store", help="group:<id> (default: every group)")
+    p.add_argument("--since", help="YYYY-MM-DD, UTC (default: 2026-06-16, the API's first data)")
+    p.add_argument("--until", help="YYYY-MM-DD, UTC (default: now)")
+    p.add_argument("--restart", action="store_true",
+                   help="forget earlier progress and start again from --since")
+    p.set_defaults(func=cmd_backfill)
 
     p = sub.add_parser("catalog", help="one count of items on sale per group, then exit")
     p.set_defaults(func=cmd_catalog)

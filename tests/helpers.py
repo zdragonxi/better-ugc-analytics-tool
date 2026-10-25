@@ -77,6 +77,37 @@ def tx(n: int, created: datetime, robux=30, asset=500, buyer=None, pending=False
             "currency": {"amount": robux, "type": "Robux"}}
 
 
+def txrow(created: datetime, robux=21, asset=500, buyer=70001, loc=2, hold="Released",
+          price=None, name=None, gid=GID_A):
+    """A synthetic transaction-records SaleOfGood row, in the recorded shape: amount and
+    unitPrice are strings, the buyer is counterParty (id only), no transaction id."""
+    return {"currencyHolder": {"type": "Group", "id": gid},
+            "counterParty": {"type": "User", "id": buyer},
+            "ledgerDomain": "VirtualCurrencyRobux", "ledgerReason": "SaleOfGood",
+            "holdStatus": hold, "amount": str(robux),
+            "details": {"productId": asset + 1, "productName": name or f"Item {asset}",
+                        "productTypeId": 8, "productTargetId": asset, "quantity": 1,
+                        "saleLocationTypeId": loc,
+                        "unitPrice": str(price if price is not None else robux * 10 // 3),
+                        "assetId": asset, "assetTypeId": 8, "collectibleItemId": None},
+            "createdTime": iso(created), "updatedTime": iso(created)}
+
+
+class FakeClock:
+    """A clock whose sleep() advances it — for RateLimiter tests without real waiting."""
+
+    def __init__(self, t=1000.0):
+        self.t = t
+        self.slept = []
+
+    def now(self):
+        return self.t
+
+    def sleep(self, s):
+        self.slept.append(s)
+        self.t += s
+
+
 CSV_FIELDS = ["Id", "Date and Time", "Asset Id", "Asset Name", "Asset Type", "Buyer User Id",
               "Price", "Revenue", "Hold Status", "Location", "Location Id", "Universe", "Universe Id"]
 

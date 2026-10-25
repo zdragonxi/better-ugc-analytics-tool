@@ -20,6 +20,25 @@ CATALOG_FLOOR = 60      # an on-demand catalog refresh never runs more often tha
 BURST_GAP = 30          # seconds kept between a sales sync and a catalog walk, either way
 
 
+def status_message(results) -> str | None:
+    """The dashboard's status line after a sync round, or None when all is well."""
+    msgs = []
+    errs = [f"{r.source}: {r.error}" for r in results if r.error]
+    cut = [r.source for r in results if r.truncated]
+    if errs:
+        msgs.append("; ".join(errs))
+    elif cut:
+        msgs.append("history gap: Roblox stopped paginating for " + ", ".join(cut)
+                    + " — import that month's CSV export")
+    fb = [r for r in results if r.fallback]
+    if fb:
+        msgs.append(", ".join(f"{r.source} ({r.fallback})" for r in fb)
+                    + ": sales API unavailable — using the older transactions API (no "
+                      "in-game/website split); retrying every "
+                    + f"{sync.TXREC_RETRY_S // 3600} h")
+    return "; ".join(msgs)[:300] if msgs else None
+
+
 class Poller:
     def __init__(self, cfg, log=print):
         self.cfg = cfg
@@ -95,20 +114,12 @@ class Poller:
                 if since_burst >= BURST_GAP and (
                         now - last["sync"] >= cfg.sync_interval or
                         (forced and now - last["sync"] >= FORCED_SYNC_FLOOR)):
-                    results = sync.sync_stores(db, s, cfg, user_id, log=self.log)
+                    results = sync.sync_stores(db, s, cfg, user_id, log=self.log,
+                                               budget=sync.POLL_BUDGET)
                     last["sync"] = last["burst_end"] = time.time()
                     self.state["stores"] = {r.source: r.as_dict() for r in results}
-                    errs = [f"{r.source}: {r.error}" for r in results if r.error]
-                    cut = [r.source for r in results if r.truncated]
                     self.state["last_sync"] = datetime.now(timezone.utc).isoformat()
-                    if errs:
-                        self.state["sync_error"] = "; ".join(errs)[:300]
-                    elif cut:
-                        self.state["sync_error"] = (
-                            "history gap: Roblox stopped paginating for "
-                            + ", ".join(cut) + " — import that month's CSV export")
-                    else:
-                        self.state["sync_error"] = None
+                    self.state["sync_error"] = status_message(results)
                 elapsed_cat = time.time() - last["cat"]
                 if cfg.groups and time.time() - last["burst_end"] >= BURST_GAP and (
                         elapsed_cat >= cfg.catalog_interval or

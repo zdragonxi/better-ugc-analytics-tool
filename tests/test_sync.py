@@ -1,4 +1,8 @@
-"""Sales sync: watermarks, truncation, store isolation, back-off, dedupe."""
+"""Sales sync over the economy API — the account's own store, and the fallback for groups
+whose transaction-records API is unusable: watermarks, truncation, store isolation, back-off,
+dedupe. (The transaction-records path is tested in test_txrec.py.)"""
+import json
+import time
 from datetime import timedelta, timezone, datetime
 
 from helpers import (FAKE_COOKIE, GID_A, GID_B, TmpDirCase, days_ago, make_cfg, tx)
@@ -24,6 +28,11 @@ class SyncTests(TmpDirCase):
         super().setUp()
         self.cfg = make_cfg(self.tmp)
         self.s = roblox.make_session(FAKE_COOKIE)
+        # both groups on the economy fallback, not due for a retry of the new API
+        for gid in (GID_A, GID_B):
+            store.set_meta(self.db, f"txrec:group:{gid}", json.dumps(
+                {"mode": "fallback", "fails": 3, "reason": "HTTP 404",
+                 "retry_at": int(time.time()) + 86400}))
 
     def run_sync(self, fake):
         with fake:

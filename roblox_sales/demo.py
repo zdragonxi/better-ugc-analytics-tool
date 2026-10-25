@@ -57,6 +57,7 @@ def build(path: str, seed: int = 7, now: datetime | None = None) -> None:
     cutoff_csv = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)  # this month = API
     rows = []
     n = 0
+    loc_rnd = random.Random(seed + 1)   # its own stream: every other number stays as before
     for d in range(DAYS + 1):
         day = start + timedelta(days=d)
         trend = 0.55 + 0.9 * d / DAYS                       # a store that grows
@@ -74,14 +75,19 @@ def build(path: str, seed: int = 7, now: datetime | None = None) -> None:
                     rent = rnd.random() < 0.03                # occasional rental payment
                     robux = max(1, int(price * 0.3 * (0.1 if rent else 1)))
                     from_csv = t < cutoff_csv
+                    if from_csv:
+                        loc, origin = ("Game" if rnd.random() < 0.78 else "Website"), "csv"
+                    elif src != "user":     # groups: the transaction-records API reports it
+                        loc, origin = ("Game" if loc_rnd.random() < 0.78 else "Website"), "txrec"
+                    else:                   # the account's own store: economy API, no location
+                        loc, origin = None, "api"
                     rows.append((f"demo-{n:07d}", src, store.canon(t), aid, name,
                                  9_000_000 + rnd.randint(0, 400_000), robux,
-                                 1 if now - t < timedelta(days=30) else 0,
-                                 (("Game" if rnd.random() < 0.78 else "Website") if from_csv else None),
-                                 "csv" if from_csv else "api"))
+                                 1 if now - t < timedelta(days=30) else 0, loc, origin,
+                                 max(1, int(price * (0.1 if rent else 1)))))
     rows.sort(key=lambda r: r[2])
     db.executemany("INSERT INTO sales (id, source, created, asset_id, asset_name, buyer_id, robux, "
-                   "is_pending, location, origin) VALUES (?,?,?,?,?,?,?,?,?,?)", rows)
+                   "is_pending, location, origin, price) VALUES (?,?,?,?,?,?,?,?,?,?,?)", rows)
     # imported-months log for the finished months
     months = sorted({r[2][:7] for r in rows if r[9] == "csv"})
     for src, _ in stores:

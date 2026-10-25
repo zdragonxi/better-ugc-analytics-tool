@@ -251,7 +251,7 @@ function render() {
   const known = game + web;
   $("vLoc").textContent = known ? `${Math.round(100 * game / known)}% / ${Math.round(100 * web / known)}%` : "–";
   $("sLoc").textContent = known ? `${fmt(game)} in-game · ${fmt(web)} website` + (unk ? ` · ${fmt(unk)} unknown` : "")
-                                : "no location data in range (CSV imports carry it)";
+                                : "no location data in range";
   $("vAvg").textContent = metric === "robux" ? fmt(rbx / nDays) : fmt(data.length / nDays);
   $("sAvg").textContent = metric === "robux" ? "Robux per day" : "sales per day";
   $("vAvgSale").textContent = data.length ? fmt(rbx / data.length) : "–";

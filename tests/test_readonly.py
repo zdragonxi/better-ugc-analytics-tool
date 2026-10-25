@@ -7,8 +7,8 @@ import threading
 import time
 from datetime import timedelta
 
-from helpers import FAKE_COOKIE, GID_A, GID_B, ROOT, TmpDirCase, days_ago, make_cfg, tx
-from fakes import FakeRoblox, pages
+from helpers import FAKE_COOKIE, GID_A, GID_B, ROOT, TmpDirCase, days_ago, make_cfg, tx, txrow
+from fakes import FakeRoblox, pages, txrec_pages, txrec_path
 
 from roblox_sales import poller as poller_mod, roblox, store
 
@@ -66,10 +66,13 @@ class FullCycleTests(TmpDirCase):
         cfg.proxy = ""
         fake = FakeRoblox()
         fake.json("/v1/users/authenticated", {"id": 4242, "name": "someone"})
-        txs = [tx(i, days_ago(0.1) - timedelta(hours=i)) for i in range(150)]
-        fake.route(f"/v2/groups/{GID_A}/transactions", pages(txs))
-        fake.route(f"/v2/groups/{GID_B}/transactions", pages([]))
-        fake.route("/v2/users/4242/transactions", pages([]))
+        # groups: the transaction-records API; the account's own store: the economy API
+        rows = [txrow(days_ago(0.1) - timedelta(hours=i), buyer=80000 + i) for i in range(140)]
+        fake.route(txrec_path(GID_A), txrec_pages(rows))
+        fake.route(txrec_path(GID_B), txrec_pages([]))
+        fake.route("/v2/users/4242/transactions",
+                   pages([tx(i, days_ago(0.2) - timedelta(hours=i)) for i in range(10)]))
+        cfg.initial_sync_days = 7
         for g in (GID_A, GID_B):
             fake.json(f"/v1/groups/{g}/currency", {"robux": 1})
             fake.json(f"/v1/groups/{g}/revenue/summary/Month", {"pendingRobux": 2})
@@ -80,6 +83,8 @@ class FullCycleTests(TmpDirCase):
                    poller_mod.BURST_GAP, poller_mod.catalog.PAGE_SLEEP)
         poller_mod.sync.PAGE_SLEEP = poller_mod.sync.STORE_SPACING = poller_mod.sync.FIN_SPACING = 0
         poller_mod.BURST_GAP = poller_mod.catalog.PAGE_SLEEP = 0
+        shared_limiter = poller_mod.sync.LIMITER
+        poller_mod.sync.LIMITER = roblox.RateLimiter(per_minute=10_000)
         try:
             with fake:
                 p = poller_mod.Poller(cfg, log=lambda *_: None)
@@ -93,7 +98,9 @@ class FullCycleTests(TmpDirCase):
         finally:
             (poller_mod.sync.PAGE_SLEEP, poller_mod.sync.STORE_SPACING, poller_mod.sync.FIN_SPACING,
              poller_mod.BURST_GAP, poller_mod.catalog.PAGE_SLEEP) = spacing
+            poller_mod.sync.LIMITER = shared_limiter
         self.assertTrue(p.state.get("last_sync"), p.state)
+        self.assertTrue(any(txrec_path(GID_A) in u for _, u, _ in fake.calls))
         self.assertGreater(len(fake.calls), 5)
         for method, url, headers in fake.calls:
             self.assertEqual(method, "GET", url)
